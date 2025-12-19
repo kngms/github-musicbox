@@ -1,0 +1,16 @@
+name: jazz_smooth
+description: Smooth jazz with relaxed tempo
+genre: jazz
+structure:
+  intro: true
+  verse_count: 2
+  chorus_count: 2
+  bridge: true
+  outro: true
+style_references:
+- type: style
+  value: smooth jazz
+- type: sound
+  value: saxophone and piano with brushed drums
+temperature: 0.6
+tips: Focus on sophisticated, laid-back lyrics. Perfect for evening moods.

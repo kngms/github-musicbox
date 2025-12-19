@@ -1,0 +1,16 @@
+name: pop_catchy
+description: Catchy pop song with radio-friendly structure
+genre: pop
+structure:
+  intro: true
+  verse_count: 2
+  chorus_count: 3
+  bridge: true
+  outro: false
+style_references:
+- type: style
+  value: contemporary pop
+- type: sound
+  value: bright synths with acoustic elements
+temperature: 0.7
+tips: Focus on memorable hooks and relatable themes. Keep it upbeat and accessible.

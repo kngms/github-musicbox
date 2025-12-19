@@ -1,0 +1,16 @@
+name: classical_orchestral
+description: Classical orchestral composition
+genre: classical
+structure:
+  intro: true
+  verse_count: 3
+  chorus_count: 2
+  bridge: true
+  outro: true
+style_references:
+- type: style
+  value: romantic era classical
+- type: sound
+  value: full orchestra with strings and brass
+temperature: 0.5
+tips: Use poetic and dramatic text. Focus on emotional depth and dynamics.

@@ -1,0 +1,16 @@
+name: rock_anthem
+description: High-energy rock anthem with powerful vocals
+genre: rock
+structure:
+  intro: true
+  verse_count: 2
+  chorus_count: 3
+  bridge: true
+  outro: true
+style_references:
+- type: style
+  value: arena rock
+- type: sound
+  value: distorted electric guitars with powerful drums
+temperature: 0.8
+tips: Use energetic and empowering lyrics. Great for anthems and motivational songs.

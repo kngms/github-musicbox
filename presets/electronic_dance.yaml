@@ -1,0 +1,16 @@
+name: electronic_dance
+description: Upbeat electronic dance music
+genre: electronic
+structure:
+  intro: true
+  verse_count: 2
+  chorus_count: 3
+  bridge: true
+  outro: true
+style_references:
+- type: style
+  value: EDM
+- type: sound
+  value: synthesizers with heavy bass and electronic beats
+temperature: 0.9
+tips: Keep lyrics simple and repetitive. Build energy through structure.
