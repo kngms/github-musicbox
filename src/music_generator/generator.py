@@ -1,8 +1,8 @@
-"""GCP integration for music track generation using Vertex AI."""
+"""Music track generation with optional GCP Vertex AI integration."""
 
 import os
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Literal
 from pathlib import Path
 import logging
 
@@ -19,10 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 class MusicGenerator:
-    """Music track generator using Google Cloud Platform Vertex AI."""
+    """Music track generator with simulate and GCP modes."""
     
     def __init__(
         self,
+        mode: Optional[Literal["simulate", "gcp"]] = None,
         project_id: Optional[str] = None,
         location: str = "us-central1",
         credentials_path: Optional[str] = None
@@ -30,41 +31,54 @@ class MusicGenerator:
         """Initialize the music generator.
         
         Args:
-            project_id: GCP project ID. If None, uses GOOGLE_CLOUD_PROJECT env var
-            location: GCP region for Vertex AI
-            credentials_path: Path to service account JSON. If None, uses GOOGLE_APPLICATION_CREDENTIALS env var
+            mode: Generation mode - 'simulate' or 'gcp'. If None, reads from MUSIC_GEN_MODE env var (default: simulate)
+            project_id: GCP project ID (required for gcp mode). If None, uses GOOGLE_CLOUD_PROJECT env var
+            location: GCP region for Vertex AI (only used in gcp mode)
+            credentials_path: Path to service account JSON (only used in gcp mode). If None, uses GOOGLE_APPLICATION_CREDENTIALS env var
         """
-        if not GOOGLE_CLOUD_AVAILABLE:
-            raise ImportError(
-                "Google Cloud libraries not installed. "
-                "Install with: pip install google-cloud-aiplatform google-auth"
-            )
+        # Determine mode
+        self.mode = mode or os.getenv("MUSIC_GEN_MODE", "simulate")
+        if self.mode not in ["simulate", "gcp"]:
+            raise ValueError(f"Invalid mode '{self.mode}'. Must be 'simulate' or 'gcp'")
         
-        self.project_id = project_id or os.getenv("GOOGLE_CLOUD_PROJECT")
         self.location = location
+        self.project_id = None
         
-        if not self.project_id:
-            raise ValueError(
-                "GCP project ID not provided. Set GOOGLE_CLOUD_PROJECT environment variable "
-                "or pass project_id parameter"
+        if self.mode == "gcp":
+            # GCP mode requires project ID and initialization
+            if not GOOGLE_CLOUD_AVAILABLE:
+                raise ImportError(
+                    "Google Cloud libraries not installed. "
+                    "Install with: pip install google-cloud-aiplatform google-auth"
+                )
+            
+            self.project_id = project_id or os.getenv("GOOGLE_CLOUD_PROJECT")
+            
+            if not self.project_id:
+                raise ValueError(
+                    "GCP project ID required in gcp mode. Set GOOGLE_CLOUD_PROJECT environment variable "
+                    "or pass project_id parameter"
+                )
+            
+            # Initialize credentials
+            if credentials_path:
+                credentials = service_account.Credentials.from_service_account_file(
+                    credentials_path
+                )
+            else:
+                credentials = None  # Will use default credentials (ADC)
+            
+            # Initialize Vertex AI
+            aiplatform.init(
+                project=self.project_id,
+                location=self.location,
+                credentials=credentials
             )
-        
-        # Initialize credentials
-        if credentials_path:
-            credentials = service_account.Credentials.from_service_account_file(
-                credentials_path
-            )
+            
+            logger.info(f"Initialized MusicGenerator in GCP mode for project {self.project_id} in {self.location}")
         else:
-            credentials = None  # Will use default credentials
-        
-        # Initialize Vertex AI
-        aiplatform.init(
-            project=self.project_id,
-            location=self.location,
-            credentials=credentials
-        )
-        
-        logger.info(f"Initialized MusicGenerator for project {self.project_id} in {self.location}")
+            # Simulate mode - no GCP initialization needed
+            logger.info("Initialized MusicGenerator in simulate mode (no GCP credentials required)")
     
     def _build_prompt(self, config: TrackConfig) -> str:
         """Build a prompt for the AI model based on track configuration.
@@ -136,15 +150,21 @@ Temperature: {config.temperature}
         """
         prompt = self._build_prompt(config)
         
-        logger.info(f"Generating {config.genre} track ({config.duration_seconds}s)")
+        logger.info(f"Generating {config.genre} track ({config.duration_seconds}s) in {self.mode} mode")
         logger.debug(f"Prompt:\n{prompt}")
         
-        # For now, we'll create a simulation response since actual music generation
-        # requires specific models and APIs that may not be available
-        # In production, this would use Vertex AI's music generation endpoints
+        # Simulate mode or GCP mode (currently both simulated until real model is integrated)
+        if self.mode == "simulate":
+            message = "Track generation simulated (no GCP credentials required)."
+        else:
+            message = (
+                "Track generation simulated. In production, this would call "
+                "Google Cloud Vertex AI music generation API with the generated prompt."
+            )
         
         result = {
             "status": "simulated",
+            "mode": self.mode,
             "genre": config.genre,
             "duration_seconds": config.duration_seconds,
             "prompt": prompt,
@@ -153,10 +173,7 @@ Temperature: {config.temperature}
                 "style_references": [ref.model_dump() for ref in config.style_references],
                 "temperature": config.temperature
             },
-            "message": (
-                "Track generation simulated. In production, this would call "
-                "Google Cloud Vertex AI music generation API with the generated prompt."
-            )
+            "message": message
         }
         
         # Save metadata if output path provided

@@ -44,14 +44,18 @@ def main():
 @click.option('--outro/--no-outro', default=True, help='Include outro section')
 @click.option('--style', '-s', multiple=True, help='Style reference (format: type:value)')
 @click.option('--temperature', type=float, default=0.7, help='Creativity level (0.0-1.0)')
-@click.option('--project-id', help='GCP project ID (or set GOOGLE_CLOUD_PROJECT)')
+@click.option('--mode', type=click.Choice(['simulate', 'gcp']), help='Generation mode (or set MUSIC_GEN_MODE env var, default: simulate)')
+@click.option('--project-id', help='GCP project ID (required for gcp mode, or set GOOGLE_CLOUD_PROJECT)')
 @click.option('--location', default='us-central1', help='GCP region')
 @click.option('--credentials', help='Path to GCP service account JSON')
 def generate(text, genre, duration, preset, output, intro, verses, choruses, 
-             bridge, outro, style, temperature, project_id, location, credentials):
+             bridge, outro, style, temperature, mode, project_id, location, credentials):
     """Generate a music track."""
     
     try:
+        # Determine mode
+        gen_mode = mode or os.getenv("MUSIC_GEN_MODE", "simulate")
+        
         # Load preset if specified
         if preset:
             preset_manager = PresetManager()
@@ -99,6 +103,7 @@ def generate(text, genre, duration, preset, output, intro, verses, choruses,
         
         # Display configuration
         console.print("\n[bold]Track Configuration:[/bold]")
+        console.print(f"Mode: [cyan]{gen_mode}[/cyan]")
         console.print(f"Genre: [cyan]{config.genre}[/cyan]")
         console.print(f"Duration: [cyan]{config.duration_seconds}s ({config.duration_seconds // 60}m {config.duration_seconds % 60}s)[/cyan]")
         console.print(f"Temperature: [cyan]{config.temperature}[/cyan]")
@@ -112,8 +117,10 @@ def generate(text, genre, duration, preset, output, intro, verses, choruses,
         console.print(Panel(config.text_input, border_style="dim"))
         
         # Initialize generator
-        with console.status("[bold green]Initializing GCP connection..."):
+        status_msg = "[bold green]Initializing generator..." if gen_mode == "simulate" else "[bold green]Initializing GCP connection..."
+        with console.status(status_msg):
             generator = MusicGenerator(
+                mode=gen_mode,
                 project_id=project_id,
                 location=location,
                 credentials_path=credentials
