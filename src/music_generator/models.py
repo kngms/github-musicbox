@@ -37,13 +37,6 @@ class TrackConfig(BaseModel):
     structure: SongStructure = Field(default_factory=SongStructure)
     style_references: List[StyleReference] = Field(default_factory=list, description="Style and sound references")
     temperature: float = Field(default=0.7, ge=0.0, le=1.0, description="Creativity level (0=conservative, 1=very creative)")
-    
-    @field_validator('duration_seconds')
-    @classmethod
-    def validate_duration(cls, v):
-        if v < 60 or v > 240:
-            raise ValueError("Duration must be between 60 and 240 seconds (1-4 minutes)")
-        return v
 
 
 class PresetConfig(BaseModel):

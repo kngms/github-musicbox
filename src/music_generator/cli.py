@@ -329,6 +329,18 @@ def setup():
     
     # Create .env file
     env_path = Path(".env")
+    
+    # Validate credentials path if provided
+    if creds_path:
+        creds_file = Path(creds_path)
+        if not creds_file.exists():
+            console.print(f"[yellow]Warning: Credentials file not found at {creds_path}[/yellow]")
+            console.print("[yellow]Make sure the path is correct before running commands[/yellow]")
+        elif not creds_file.is_file():
+            console.print(f"[yellow]Warning: {creds_path} is not a file[/yellow]")
+        else:
+            console.print(f"[green]✓ Credentials file found at {creds_path}[/green]")
+    
     with open(env_path, 'w') as f:
         f.write(f"GOOGLE_CLOUD_PROJECT={project_id}\n")
         if creds_path:

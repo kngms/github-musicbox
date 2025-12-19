@@ -75,14 +75,21 @@ class MusicGenerator:
         Returns:
             Formatted prompt string
         """
-        # Build structure description
+        # Build structure description with proper verse/chorus interleaving
         structure_parts = []
         if config.structure.intro:
             structure_parts.append("intro")
-        for i in range(config.structure.verse_count):
-            structure_parts.append(f"verse {i+1}")
-            if i < config.structure.chorus_count:
+        
+        # Interleave verses and choruses
+        verse_count = config.structure.verse_count
+        chorus_count = config.structure.chorus_count
+        
+        for i in range(max(verse_count, chorus_count)):
+            if i < verse_count:
+                structure_parts.append(f"verse {i+1}")
+            if i < chorus_count:
                 structure_parts.append("chorus")
+        
         if config.structure.bridge:
             structure_parts.append("bridge")
         if config.structure.outro:

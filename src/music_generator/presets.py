@@ -161,10 +161,13 @@ class PresetManager:
         if not preset_path.exists():
             return None
         
-        with open(preset_path, 'r') as f:
-            data = yaml.safe_load(f)
-        
-        return PresetConfig(**data)
+        try:
+            with open(preset_path, 'r') as f:
+                data = yaml.safe_load(f)
+            
+            return PresetConfig(**data)
+        except (IOError, yaml.YAMLError) as e:
+            raise ValueError(f"Failed to load preset '{name}': {str(e)}")
     
     def list_presets(self) -> List[str]:
         """List all available presets.
