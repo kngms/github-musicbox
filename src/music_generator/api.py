@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException, Header, Depends, Query
 from pydantic import BaseModel, Field
 import logging
+import uvicorn
 
 from .models import TrackConfig, SongStructure, StyleReference, PresetConfig
 from .generator import MusicGenerator
@@ -298,8 +299,6 @@ def health_check():
 
 def main():
     """Main entrypoint for running the API server."""
-    import uvicorn
-    
     # Read port from environment variable (for Cloud Run compatibility)
     port = int(os.getenv("PORT", "8080"))
     
