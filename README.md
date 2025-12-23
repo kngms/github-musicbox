@@ -80,10 +80,13 @@ music-gen generate \
 
 ```bash
 # Start the API server (binds to 0.0.0.0:8080 by default)
-uvicorn music_generator.api:app --host 0.0.0.0 --port 8080
+music-gen-api
 
 # Or set custom port
-PORT=3000 uvicorn music_generator.api:app --host 0.0.0.0 --port 3000
+PORT=3000 music-gen-api
+
+# Alternative: use uvicorn directly
+uvicorn music_generator.api:app --host 0.0.0.0 --port 8080
 ```
 
 Access API documentation at `http://localhost:8080/docs`
@@ -171,15 +174,18 @@ music-gen delete-preset my_metal
 
 ```bash
 # Default (simulate mode, no auth)
-uvicorn music_generator.api:app --host 0.0.0.0 --port 8080
+music-gen-api
 
 # With API key authentication
 export MUSIC_GEN_API_KEY=your-secret-key
-uvicorn music_generator.api:app --host 0.0.0.0 --port 8080
+music-gen-api
 
 # GCP mode
 export MUSIC_GEN_MODE=gcp
 export GOOGLE_CLOUD_PROJECT=your-project-id
+music-gen-api
+
+# Alternative: use uvicorn directly
 uvicorn music_generator.api:app --host 0.0.0.0 --port 8080
 ```
 
@@ -421,7 +427,7 @@ GitHub Codespaces works out of the box:
    ```
 4. Or start the API server:
    ```bash
-   uvicorn music_generator.api:app --host 0.0.0.0 --port 8080
+   music-gen-api
    ```
 
 ## Environment Variables

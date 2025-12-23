@@ -32,4 +32,4 @@ echo ""
 echo "Press Ctrl+C to stop"
 echo ""
 
-uvicorn music_generator.api:app --host 0.0.0.0 --port $PORT
+music-gen-api
