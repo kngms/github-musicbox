@@ -265,6 +265,12 @@ uvicorn music_generator.api:app --host 0.0.0.0 --port 8080
 # GET /config - Returns safe configuration info (no secrets)
 curl http://localhost:8080/config
 
+# Note: Requires authentication via X-API-Key header or Authorization Bearer token 
+# when MUSIC_GEN_API_KEY is set.
+
+# With authentication (when API key is configured):
+curl -H "X-API-Key: your-secret-key" http://localhost:8080/config
+
 # Response example:
 # {
 #   "mode": "simulate",

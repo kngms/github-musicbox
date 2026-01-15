@@ -389,3 +389,29 @@ def test_restore_env_helper():
         
         os.environ.pop("TEST_ENV_VAR_3", None)
 
+
+def test_config_endpoint_authentication(reload_api_module):
+    """Test that /config endpoint requires authentication when API key is configured."""
+    test_client, old_env = reload_api_module(MUSIC_GEN_API_KEY="test_secret_key")
+    
+    try:
+        # Request without API key should fail
+        response = test_client.get("/config")
+        assert response.status_code == 401
+        
+        # Request with correct API key in X-API-Key header
+        response = test_client.get("/config", headers={"X-API-Key": "test_secret_key"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["auth_enabled"] is True
+        
+        # Request with correct API key in Authorization header
+        response = test_client.get("/config", headers={"Authorization": "Bearer test_secret_key"})
+        assert response.status_code == 200
+        
+        # Request with wrong API key
+        response = test_client.get("/config", headers={"X-API-Key": "wrong_key"})
+        assert response.status_code == 401
+    finally:
+        restore_env(old_env)
+
