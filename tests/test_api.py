@@ -2,14 +2,26 @@
 
 import os
 import pytest
+from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 
 # Set test environment
 os.environ["MUSIC_GEN_MODE"] = "simulate"
 
-from music_generator.api import app
+from music_generator.api import app, main
 
 client = TestClient(app)
+
+
+@pytest.fixture
+def port_env():
+    """Fixture to save and restore PORT environment variable."""
+    old_port = os.environ.get("PORT")
+    yield
+    if old_port:
+        os.environ["PORT"] = old_port
+    else:
+        os.environ.pop("PORT", None)
 
 
 def test_root():
@@ -240,3 +252,70 @@ def test_api_key_authentication():
             os.environ["MUSIC_GEN_API_KEY"] = old_api_key
         else:
             os.environ.pop("MUSIC_GEN_API_KEY", None)
+
+
+def test_main_with_default_port(port_env):
+    """Test main() function with default port (no PORT env var)."""
+    # Remove PORT env var to test default
+    os.environ.pop("PORT", None)
+    
+    with patch("music_generator.api.uvicorn.run") as mock_run:
+        main()
+        
+        # Verify uvicorn.run was called with correct parameters
+        mock_run.assert_called_once_with(
+            "music_generator.api:app",
+            host="0.0.0.0",
+            port=8080,
+            log_level="info"
+        )
+
+
+def test_main_with_custom_port(port_env):
+    """Test main() function with custom PORT environment variable."""
+    # Set custom port
+    os.environ["PORT"] = "9000"
+    
+    with patch("music_generator.api.uvicorn.run") as mock_run:
+        main()
+        
+        # Verify uvicorn.run was called with custom port
+        mock_run.assert_called_once_with(
+            "music_generator.api:app",
+            host="0.0.0.0",
+            port=9000,
+            log_level="info"
+        )
+
+
+def test_main_with_invalid_port_fallback(port_env):
+    """Test main() function falls back to default port when PORT is invalid."""
+    # Set invalid port value
+    os.environ["PORT"] = "not_a_number"
+    
+    with patch("music_generator.api.uvicorn.run") as mock_run:
+        main()
+        
+        # Verify uvicorn.run was called with fallback port 8080
+        mock_run.assert_called_once_with(
+            "music_generator.api:app",
+            host="0.0.0.0",
+            port=8080,
+            log_level="info"
+        )
+
+
+def test_main_uvicorn_configuration(port_env):
+    """Test main() function passes correct configuration to uvicorn."""
+    os.environ["PORT"] = "3000"
+    
+    with patch("music_generator.api.uvicorn.run") as mock_run:
+        main()
+        
+        # Verify uvicorn.run was called with correct parameters
+        mock_run.assert_called_once_with(
+            "music_generator.api:app",
+            host="0.0.0.0",
+            port=3000,
+            log_level="info"
+        )
