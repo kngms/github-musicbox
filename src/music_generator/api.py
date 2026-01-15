@@ -300,13 +300,18 @@ def health_check():
 def main():
     """Main entrypoint for running the API server."""
     # Read port from environment variable (for Cloud Run compatibility)
-    port = int(os.getenv("PORT", "8080"))
+    port_str = os.getenv("PORT", "8080")
+    try:
+        port = int(port_str)
+    except ValueError:
+        logger.error(f"Invalid PORT environment variable value: {port_str!r}. Falling back to default port 8080.")
+        port = 8080
     
     logger.info(f"Starting Music Track Generator API on port {port}")
     logger.info(f"Mode: {os.getenv('MUSIC_GEN_MODE', 'simulate')}")
     
     uvicorn.run(
-        app,
+        "music_generator.api:app",
         host="0.0.0.0",
         port=port,
         log_level="info"
