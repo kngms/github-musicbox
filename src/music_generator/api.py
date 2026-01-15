@@ -2,7 +2,10 @@
 
 import os
 from typing import Optional, List, Dict, Any
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Header, Depends, Query
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 import logging
 
@@ -10,15 +13,61 @@ from .models import TrackConfig, SongStructure, StyleReference, PresetConfig
 from .generator import MusicGenerator
 from .presets import PresetManager
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging with UTF-8 encoding
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    encoding='utf-8'
+)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
+# Initialize shared components (before lifespan to ensure availability)
+preset_manager = PresetManager()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler for startup and shutdown events."""
+    # Startup
+    logger.info("=" * 70)
+    logger.info("🎵 Music Track Generator API - Startup Configuration")
+    logger.info("=" * 70)
+    
+    # Get configuration values
+    mode = os.getenv("MUSIC_GEN_MODE", "simulate")
+    api_key_set = "yes" if os.getenv("MUSIC_GEN_API_KEY") else "no"
+    project = os.getenv("GOOGLE_CLOUD_PROJECT", "not set")
+    region = os.getenv("GOOGLE_CLOUD_REGION", "us-central1")
+    
+    # Print core configuration
+    logger.info(f"Mode: {mode}")
+    logger.info(f"API Key Authentication: {api_key_set}")
+    
+    # Print GCP-specific configuration when in gcp mode
+    if mode == "gcp":
+        logger.info(f"Google Cloud Project: {project}")
+        logger.info(f"Google Cloud Region: {region}")
+    
+    # Print available presets
+    presets = preset_manager.list_presets()
+    logger.info(f"Available Presets: {len(presets)} loaded")
+    
+    logger.info("=" * 70)
+    logger.info("✅ Server ready to accept requests")
+    logger.info("=" * 70)
+    
+    yield
+    
+    # Shutdown (if needed)
+    logger.info("Shutting down...")
+
+
+# Initialize FastAPI app with lifespan
 app = FastAPI(
     title="Music Track Generator API",
     description="Generate music tracks with configurable genres, structures, and styles",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
 
 # Get API key from environment (optional)
@@ -62,6 +111,28 @@ class PromptTip(BaseModel):
     tips: Optional[str]
 
 
+class ConfigResponse(BaseModel):
+    """Response model for configuration endpoint."""
+    mode: str
+    region: Optional[str]
+    project: Optional[str]
+    presets_available: List[str]
+    auth_enabled: bool
+
+
+class ValidationErrorDetail(BaseModel):
+    """Validation error detail."""
+    field: str
+    message: str
+    type: str
+
+
+class ValidationErrorResponse(BaseModel):
+    """Structured validation error response."""
+    detail: str
+    errors: List[ValidationErrorDetail]
+
+
 # API Key Authentication
 def verify_api_key(
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
@@ -85,8 +156,28 @@ def verify_api_key(
     raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
-# Initialize shared components
-preset_manager = PresetManager()
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_request, exc: RequestValidationError):
+    """Custom handler for validation errors to return structured responses."""
+    errors = []
+    for error in exc.errors():
+        # Get field name from loc (location)
+        field = ".".join(str(loc) for loc in error["loc"]) if error["loc"] else "unknown"
+        errors.append(
+            ValidationErrorDetail(
+                field=field,
+                message=error["msg"],
+                type=error["type"]
+            )
+        )
+    
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Validation error",
+            "errors": [e.model_dump() for e in errors]
+        }
+    )
 
 
 def get_generator() -> MusicGenerator:
@@ -294,3 +385,24 @@ def health_check():
         "status": "healthy",
         "mode": os.getenv("MUSIC_GEN_MODE", "simulate")
     }
+
+
+@app.get("/config", response_model=ConfigResponse, dependencies=[Depends(verify_api_key)])
+def get_config():
+    """Get current configuration information.
+    
+    Returns safe configuration details without exposing secrets.
+    """
+    mode = os.getenv("MUSIC_GEN_MODE", "simulate")
+    region = os.getenv("GOOGLE_CLOUD_REGION", "us-central1") if mode == "gcp" else None
+    project = os.getenv("GOOGLE_CLOUD_PROJECT") if mode == "gcp" else None
+    presets = preset_manager.list_presets()
+    auth_enabled = bool(os.getenv("MUSIC_GEN_API_KEY"))
+    
+    return ConfigResponse(
+        mode=mode,
+        region=region,
+        project=project,
+        presets_available=presets,
+        auth_enabled=auth_enabled
+    )

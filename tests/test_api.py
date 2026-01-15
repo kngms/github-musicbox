@@ -4,8 +4,9 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-# Set test environment
+# Set test environment and clear any leftover API key
 os.environ["MUSIC_GEN_MODE"] = "simulate"
+os.environ.pop("MUSIC_GEN_API_KEY", None)
 
 from music_generator.api import app
 
@@ -240,3 +241,138 @@ def test_api_key_authentication():
             os.environ["MUSIC_GEN_API_KEY"] = old_api_key
         else:
             os.environ.pop("MUSIC_GEN_API_KEY", None)
+        
+        # Reload module again to restore original state
+        from importlib import reload
+        import music_generator.api as api_module
+        reload(api_module)
+
+
+def test_get_config():
+    """Test getting configuration information."""
+    response = client.get("/config")
+    assert response.status_code == 200
+    data = response.json()
+    
+    # Check required fields
+    assert "mode" in data
+    assert "region" in data
+    assert "project" in data
+    assert "presets_available" in data
+    assert "auth_enabled" in data
+    
+    # Check values for simulate mode
+    assert data["mode"] == "simulate"
+    assert data["region"] is None  # Not set in simulate mode
+    assert data["project"] is None  # Not set in simulate mode
+    assert isinstance(data["presets_available"], list)
+    assert len(data["presets_available"]) > 0
+    assert data["auth_enabled"] is False
+
+
+def test_get_config_gcp_mode():
+    """Test configuration endpoint in GCP mode."""
+    # Save current env
+    old_mode = os.environ.get("MUSIC_GEN_MODE")
+    old_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+    old_region = os.environ.get("GOOGLE_CLOUD_REGION")
+    
+    try:
+        # Set GCP mode environment
+        os.environ["MUSIC_GEN_MODE"] = "gcp"
+        os.environ["GOOGLE_CLOUD_PROJECT"] = "test-project-123"
+        os.environ["GOOGLE_CLOUD_REGION"] = "us-west1"
+        
+        # Reimport to pick up new env vars
+        from importlib import reload
+        import music_generator.api as api_module
+        reload(api_module)
+        test_client = TestClient(api_module.app)
+        
+        response = test_client.get("/config")
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Check GCP-specific values
+        assert data["mode"] == "gcp"
+        assert data["project"] == "test-project-123"
+        assert data["region"] == "us-west1"
+        assert isinstance(data["presets_available"], list)
+        
+    finally:
+        # Restore env
+        if old_mode:
+            os.environ["MUSIC_GEN_MODE"] = old_mode
+        else:
+            os.environ.pop("MUSIC_GEN_MODE", None)
+        if old_project:
+            os.environ["GOOGLE_CLOUD_PROJECT"] = old_project
+        else:
+            os.environ.pop("GOOGLE_CLOUD_PROJECT", None)
+        if old_region:
+            os.environ["GOOGLE_CLOUD_REGION"] = old_region
+        else:
+            os.environ.pop("GOOGLE_CLOUD_REGION", None)
+        
+        # Reload module again to restore original state
+        from importlib import reload
+        import music_generator.api as api_module
+        reload(api_module)
+
+
+def test_validation_error_structure():
+    """Test that validation errors return structured responses with field names."""
+    # Test with invalid duration (too short)
+    response = client.post("/tracks/generate", json={
+        "text_input": "Test lyrics",
+        "genre": "rock",
+        "duration_seconds": 30,  # Too short, must be >= 60
+        "structure": {
+            "intro": True,
+            "verse_count": 2,
+            "chorus_count": 2,
+            "bridge": True,
+            "outro": True
+        }
+    })
+    
+    assert response.status_code == 422
+    data = response.json()
+    
+    # Check structured error response
+    assert "detail" in data
+    assert "errors" in data
+    assert isinstance(data["errors"], list)
+    assert len(data["errors"]) > 0
+    
+    # Check error structure
+    error = data["errors"][0]
+    assert "field" in error
+    assert "message" in error
+    assert "type" in error
+    
+    # Check that the field is identified correctly
+    assert "duration_seconds" in error["field"]
+
+
+def test_validation_error_missing_fields():
+    """Test validation errors for missing required fields."""
+    # Test with missing required fields
+    response = client.post("/tracks/generate", json={
+        "genre": "rock",
+        # Missing text_input
+        "duration_seconds": 180
+    })
+    
+    assert response.status_code == 422
+    data = response.json()
+    
+    # Check structured error response
+    assert "detail" in data
+    assert "errors" in data
+    assert isinstance(data["errors"], list)
+    assert len(data["errors"]) > 0
+    
+    # Check that text_input field is mentioned
+    field_names = [err["field"] for err in data["errors"]]
+    assert any("text_input" in field for field in field_names)

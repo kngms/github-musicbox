@@ -63,6 +63,25 @@ pip install -e .
 
 ## Quick Start
 
+### Using the Makefile (Recommended)
+
+```bash
+# Show available commands
+make help
+
+# Create virtual environment and install dependencies
+make install
+
+# Run tests
+make test
+
+# Start API server
+make api
+
+# Show CLI help
+make cli-help
+```
+
 ### CLI Usage (No Credentials Needed)
 
 ```bash
@@ -76,14 +95,73 @@ music-gen generate \
   --preset rock_anthem
 ```
 
+#### Expected Output in Simulate Mode
+
+When running in simulate mode, you'll see output like this:
+
+```
+INFO:music_generator.generator:Initialized MusicGenerator in simulate mode (no GCP credentials required)
+INFO:music_generator.generator:Generating rock track (180s) in simulate mode
+
+✅ Track generation simulated successfully!
+
+Status: simulated
+Mode: simulate
+Genre: rock
+Duration: 180 seconds
+
+Generated Prompt:
+Generate a rock music track with the following specifications:
+
+Duration: 180 seconds (3 minutes 0 seconds)
+
+Song structure: intro -> verse 1 -> chorus -> verse 2 -> chorus -> bridge -> outro
+
+Lyrics/Text input:
+Walking down the street, feeling the beat...
+
+Style references:
+- style: arena rock
+- style: anthemic
+- sound: electric guitar and drums
+
+Create a track that follows this structure and incorporates the provided text and style references.
+Temperature: 0.8
+
+💡 Message: Track generation simulated (no GCP credentials required).
+```
+
 ### API Server
 
 ```bash
 # Start the API server (binds to 0.0.0.0:8080 by default)
 uvicorn music_generator.api:app --host 0.0.0.0 --port 8080
 
+# Or use make
+make api
+
 # Or set custom port
 PORT=3000 uvicorn music_generator.api:app --host 0.0.0.0 --port 3000
+```
+
+#### Expected Startup Output
+
+When starting the API server, you'll see configuration details:
+
+```
+INFO:music_generator.api:======================================================================
+INFO:music_generator.api:🎵 Music Track Generator API - Startup Configuration
+INFO:music_generator.api:======================================================================
+INFO:music_generator.api:Mode: simulate
+INFO:music_generator.api:API Key Authentication: no
+INFO:music_generator.api:Available Presets: 5 loaded
+INFO:music_generator.api:======================================================================
+INFO:music_generator.api:✅ Server ready to accept requests
+INFO:music_generator.api:======================================================================
+INFO:     Started server process [12345]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
 ```
 
 Access API documentation at `http://localhost:8080/docs`
@@ -271,6 +349,31 @@ curl http://localhost:8080/prompt-tips?preset_name=rock_anthem
 # GET /health
 curl http://localhost:8080/health
 ```
+
+#### Configuration
+```bash
+# GET /config - Get current server configuration
+curl http://localhost:8080/config
+```
+
+**Example response:**
+```json
+{
+  "mode": "simulate",
+  "region": null,
+  "project": null,
+  "presets_available": [
+    "rock_anthem",
+    "jazz_smooth",
+    "electronic_dance",
+    "classical_orchestral",
+    "pop_catchy"
+  ],
+  "auth_enabled": false
+}
+```
+
+**Note:** The `/config` endpoint requires authentication if `MUSIC_GEN_API_KEY` is set.
 
 ### API Authentication
 
