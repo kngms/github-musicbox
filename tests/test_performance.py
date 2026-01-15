@@ -38,6 +38,11 @@ def test_generator_caching():
     
     # Cache should have one entry for the simulate mode
     assert len(api._generator_cache) >= 1
+    
+    # Verify cache key handles None values properly (simulate mode has no project_id)
+    # The cache key should be consistent for multiple requests
+    cache_keys = list(api._generator_cache.keys())
+    assert all("None" not in key for key in cache_keys), "Cache keys should not contain 'None' string"
 
 
 def test_list_presets_performance():

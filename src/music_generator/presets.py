@@ -30,7 +30,7 @@ class PresetManager:
     
     def _ensure_builtin_presets(self):
         """Create built-in presets if they don't exist (optimized to check only once per preset)."""
-        # Check if any preset files exist
+        # Batch check: load all existing preset names at once (efficient for typical preset counts < 100)
         existing_presets = set(p.stem for p in self.presets_dir.glob("*.yaml"))
         builtin_presets = self._get_builtin_presets()
         

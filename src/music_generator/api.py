@@ -189,8 +189,8 @@ def get_generator() -> MusicGenerator:
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
     location = os.getenv("GOOGLE_CLOUD_REGION", "us-central1")
     
-    # Create cache key based on configuration
-    cache_key = f"{mode}:{project_id}:{location}"
+    # Create cache key based on configuration (normalize None values)
+    cache_key = f"{mode}:{project_id or ''}:{location}"
     
     # Return cached generator if available
     if cache_key in _generator_cache:
