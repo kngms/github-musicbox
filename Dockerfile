@@ -30,5 +30,5 @@ EXPOSE 8080
 ENV MUSIC_GEN_MODE=simulate
 ENV PORT=8080
 
-# Run the API server
-CMD uvicorn music_generator.api:app --host 0.0.0.0 --port ${PORT}
+# Run the API server using entrypoint
+CMD ["music-gen-api"]

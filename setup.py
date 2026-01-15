@@ -27,6 +27,7 @@ setup(
     entry_points={
         "console_scripts": [
             "music-gen=music_generator.cli:main",
+            "music-gen-api=music_generator.api:main",
         ],
     },
     python_requires=">=3.9",
