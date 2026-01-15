@@ -44,6 +44,9 @@ api:
 	@echo "Press Ctrl+C to stop"
 	uvicorn music_generator.api:app --host 0.0.0.0 --port 8080
 
+# Define common clean commands
+CLEAN_FIND_COMMANDS = find . -type d \( -name "__pycache__" -o -name "*.egg-info" -o -name ".pytest_cache" \) -prune -exec rm -rf {} + 2>/dev/null || true
+
 # Show CLI help
 cli-help:
 	@echo "Music Track Generator CLI Commands:"
@@ -57,12 +60,12 @@ cli-help:
 # Clean up cache and artifacts (preserves venv)
 clean:
 	@echo "Cleaning cache and build artifacts..."
-	find . -type d \( -name "__pycache__" -o -name "*.egg-info" -o -name ".pytest_cache" \) -prune -exec rm -rf {} + 2>/dev/null || true
+	@$(CLEAN_FIND_COMMANDS)
 	@echo "Clean complete!"
 
 # Clean up everything including virtual environment
 clean-all:
 	@echo "Cleaning everything including venv..."
 	rm -rf venv
-	find . -type d \( -name "__pycache__" -o -name "*.egg-info" -o -name ".pytest_cache" \) -prune -exec rm -rf {} + 2>/dev/null || true
+	@$(CLEAN_FIND_COMMANDS)
 	@echo "Clean complete!"
